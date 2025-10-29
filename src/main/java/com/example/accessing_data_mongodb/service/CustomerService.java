@@ -1,15 +1,14 @@
 package com.example.accessing_data_mongodb.service;
 
 import com.example.accessing_data_mongodb.controller.dto.CreateCustomerDTO;
-import com.example.accessing_data_mongodb.controller.dto.CustomerDTO;
+import com.example.accessing_data_mongodb.controller.dto.CustomerResponseDTO;
 import com.example.accessing_data_mongodb.controller.dto.UpdateCustomerDTO;
 import com.example.accessing_data_mongodb.core.entity.Customer;
+import com.example.accessing_data_mongodb.exception.ResourceNotFoundException;
 import com.example.accessing_data_mongodb.persistence.CustomerRepository;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 
@@ -20,35 +19,36 @@ public class CustomerService {
     private CustomerRepository customerRepository;
     private final ModelMapper modelMapper;
 
-    public CustomerDTO createCustomer(CreateCustomerDTO createCustomerDTO) {
+    public CustomerResponseDTO createCustomer(CreateCustomerDTO createCustomerDTO) {
         var customerEntity = modelMapper.map(createCustomerDTO, Customer.class);
         var savedCustomerEntity = customerRepository.save(customerEntity);
-        return modelMapper.map(savedCustomerEntity, CustomerDTO.class);
+
+        return modelMapper.map(savedCustomerEntity, CustomerResponseDTO.class);
     }
 
-    public List<CustomerDTO> findAllCustomers() {
+    public List<CustomerResponseDTO> findAllCustomers() {
         var customers = customerRepository.findAll();
-        return customers.stream().map(c -> modelMapper.map(c, CustomerDTO.class)).toList();
+        return customers.stream().map(c -> modelMapper.map(c, CustomerResponseDTO.class)).toList();
     }
 
-    public CustomerDTO findOneById(String id) {
+    public CustomerResponseDTO findOneById(String id) {
         var customer = customerRepository.findById(id).orElse(null);
         if (customer == null) {
-            throw new HttpClientErrorException(HttpStatusCode.valueOf(404));
+            throw new ResourceNotFoundException("Customer not found");
         }
-        return modelMapper.map(customer, CustomerDTO.class);
+        return modelMapper.map(customer, CustomerResponseDTO.class);
     }
 
     public void removeCustomerById(String id) {
         customerRepository.deleteById(id);
     }
 
-    public CustomerDTO updateCustomer(String id, UpdateCustomerDTO updateCustomerDTO) {
+    public CustomerResponseDTO updateCustomer(String id, UpdateCustomerDTO updateCustomerDTO) {
 
         var customerEntity = customerRepository.findById(id).orElse(null);
 
         if (customerEntity == null) {
-            throw new HttpClientErrorException(HttpStatusCode.valueOf(404));
+            throw new ResourceNotFoundException("Customer not found");
         }
 
         customerEntity.setFirstName(updateCustomerDTO.getFirstName());
@@ -56,6 +56,6 @@ public class CustomerService {
 
         var savedCustomer = customerRepository.save(customerEntity);
 
-        return modelMapper.map(savedCustomer, CustomerDTO.class);
+        return modelMapper.map(savedCustomer, CustomerResponseDTO.class);
     }
 }
